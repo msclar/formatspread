@@ -5,7 +5,7 @@ import re
 
 from grammar_definition import flatten, _one_text_field
 from parsing_supernatural_instructions_tasks import SUPERNATURAL_INSTRUCTIONS_TASKS_WITH_NO_FORMAT, \
-    create_initial_structured_prompt_format
+    create_initial_structured_prompt_format, OPEN_GENERATION_SUPERNATURAL_INSTRUCTIONS_TASKS
 
 SUPERNATURAL_INSTRUCTIONS_DIRECTORY = '../natural-instructions/tasks'
 INSTRUCTION_INDUCTION_DIRECTORY = '../instruction-induction'
@@ -145,7 +145,7 @@ def load_supernatural_instructions_task(args):
     """
 
     # SuperNaturalInstructions Tasks without a defined format
-    if any(t in args.task_filename for t in SUPERNATURAL_INSTRUCTIONS_TASKS_WITH_NO_FORMAT):
+    if any(t in args.task_filename for t in SUPERNATURAL_INSTRUCTIONS_TASKS_WITH_NO_FORMAT + OPEN_GENERATION_SUPERNATURAL_INSTRUCTIONS_TASKS):
         raw_dataset = _load_raw_dataset_supernatural_instructions(args.task_filename)
         demonstration_definition = raw_dataset['Definition'][0]
         raw_dataset = raw_dataset['Instances']
