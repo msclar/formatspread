@@ -3,6 +3,7 @@ import math
 import os
 import psutil
 
+import bert_score
 import openai
 from rouge_score import rouge_scorer
 import torch
@@ -55,7 +56,7 @@ def query_model_parallelized(model, tokenizer, prompt_list, max_tokens, top_p, t
 
     with torch.no_grad():
         outputs = model.generate(
-            **inputs, top_p=top_p, temperature=temperature, max_new_tokens=max_tokens,
+            **inputs, pad_token_id=tokenizer.pad_token_id, top_p=top_p, temperature=temperature, max_new_tokens=max_tokens,
             return_dict_in_generate=True, output_hidden_states=True, output_attentions=False, output_scores=True
         )
 
@@ -159,6 +160,17 @@ def _setup_full_prompts_to_test_on(input_fields_list, regex_key_idx_list, select
     return full_prompt_string_list, selected_dataset_ids
 
 
+# layzily initiailize a bertscore model
+bert_score_model = None
+
+
+def get_bert_score_model():
+    global bert_score_model
+    if bert_score_model is None:
+        bert_score_model = bert_score.BERTScorer(lang='en')
+    return bert_score_model
+
+
 def evaluate_prompt_format(
         args, dataset, input_fields_list, regex_key_idx_list, selected_dataset_ids,
         demos_fields_list, demos_regex_key_idx_list, demonstrations_outputs, demonstration_definition,
@@ -191,7 +203,7 @@ def evaluate_prompt_format(
         return solve_with_rank_based_scoring(
             dataset_updated, selected_dataset_ids, model, tokenizer, input_prompt_string_list, args.batch_size_llm)
 
-    elif args.evaluation_metric in {'exact_prefix_matching', 'rouge'}:
+    elif args.evaluation_metric in {'exact_prefix_matching', 'rouge', 'bertscore'}:
         logs = generate_text_with_metadata(
             args, input_prompt_string_list, model, tokenizer, model_will_repeat_input,
             dataset_updated, selected_dataset_ids, output_classes)
@@ -202,6 +214,13 @@ def evaluate_prompt_format(
             scores = [scorer.score(entry['generation'], entry['answer'])["rougeL"].fmeasure for entry in logs]
             avg_score = sum(scores) / len(scores)
             return (avg_score, None, None), (None, logs)
+        elif args.evaluation_metric == 'bertscore':
+            references = [entry['answer'] for entry in logs]
+            candidates = [entry['generation'] for entry in logs]
+            scorer = get_bert_score_model()
+            P, R, F1 = scorer.score(candidates, references)
+            return (F1.mean().item(), None, None), (None, logs)
+
 
 
 
@@ -421,8 +440,12 @@ def get_ranking_based_generation_single_token_output_classes(prompts, output_cla
     output_classes_tokens = [t for t in tokenizer(output_classes, return_token_type_ids=False)['input_ids']]
     all_classes_share_common_prefix = len(set([tuple(t[:-1]) for t in output_classes_tokens])) == 1
 
-    tokenized_inputs_list = tokenizer(prompts, return_tensors="pt", padding=True, return_token_type_ids=False)[
-        'input_ids'].tolist()
+    if tokenizer.chat_template is None:
+        tokenized = tokenizer(prompts, return_tensors="pt", padding=True, return_token_type_ids=False)
+    else:
+        turns = [[{"role": "user", "content": prompt}] for prompt in prompts]
+        tokenized = tokenizer.apply_chat_template(turns, return_tensors="pt", padding=True, return_dict=True, add_generation_prompt=True, return_token_type_ids=False)
+    tokenized_inputs_list = tokenized["input_ids"].tolist()
     if all_classes_share_common_prefix:
         for i in range(len(tokenized_inputs_list)):
             # if the tokenized element is [1, 29871, 29900], get [29871]
