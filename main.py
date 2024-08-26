@@ -317,7 +317,7 @@ if __name__ == "__main__":
 
     # params to set up evaluation settings
     parser.add_argument('--num_samples', type=int, default=1000, help='Maximum number of samples to evaluate for each format.')
-    parser.add_argument('--evaluation_metric', choices=['exact_prefix_matching', 'probability_ranking'])
+    parser.add_argument('--evaluation_metric', choices=['exact_prefix_matching', 'probability_ranking', 'rouge', 'bertscore'])
     parser.add_argument('--evaluation_type', type=str, choices=['full', 'format_spread'],
                         help='Determines how to evaluate the array of formats defined. '
                              'Options are full evaluation of each node, or use Thompson Sampling to quickly find the format spread.')
