@@ -1,4 +1,5 @@
 import copy
+from functools import lru_cache
 import math
 import os
 import psutil
@@ -14,6 +15,13 @@ from parsing_supernatural_instructions_tasks import OPEN_GENERATION_SUPERNATURAL
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 PRINT_HIDDEN_STATE = False
+
+
+# Keep track of 10 different messages and then warn again
+# Adapted from https://stackoverflow.com/a/66062313
+@lru_cache(10)
+def print_once(msg: str):
+    print(msg)
 
 
 def call_openai_api_with_retry(args, prompt, max_tokens=10):
@@ -191,6 +199,7 @@ def evaluate_prompt_format(
     assert all(len(dataset[idx]['output']) >= 1 for idx in selected_dataset_ids)
     for idx in selected_dataset_ids:
         if len(dataset[idx]['output']) > 1:
+            print_once("Warning: multiple outputs for a single input. Only the first one will be used.")
             dataset[idx]['output'] = [dataset[idx]['output'][0]]
     dataset_updated = copy.deepcopy(dataset)
     if original_to_current_multiple_choice_classes:
