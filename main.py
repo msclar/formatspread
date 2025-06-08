@@ -88,6 +88,19 @@ def _load_model(args):
     return model, tokenizer, model_will_repeat_input
 
 
+def _load_model_vllm(args):
+    # using code from facebookresearch/ExploreToM
+    assert args.model_access_method == "vllm-api" or args.model_access_method.startswith('openai')
+
+    from utils_new import ModelCallHandler
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+
+    model_call_handler = ModelCallHandler(args.model_name, args.model_access_method)
+    # tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=args.cache_dir, return_token_type_ids=False)
+    tokenizer = False
+    model_will_repeat_input = False
+    return model_call_handler, tokenizer, model_will_repeat_input
+
 def _load_task(args):
     if args.dataset_name == 'natural-instructions':
         from parsing_supernatural_instructions_tasks import OPEN_GENERATION_SUPERNATURAL_INSTRUCTIONS_TASKS
@@ -325,9 +338,11 @@ if __name__ == "__main__":
 
     # params to load models and how to use them
     parser.add_argument('--model_name', type=str, default=None)
+    parser.add_argument('--model_access_method', type=str, default='')
     parser.add_argument('--batch_size_llm', type=int, default=2, help='Batch size to call the LLM.')
     parser.add_argument('--use_4bit', action='store_true')
-    parser.add_argument('--cache_dir', type=str, default='/gscratch/xlab/msclar/.cache')
+    # parser.add_argument('--cache_dir', type=str, default='/gscratch/xlab/msclar/.cache')
+    parser.add_argument('--cache_dir', type=str, default='/data/home/melaniesclar/lotsofdata/vllm_cache')
 
     # FormatSpread-specific parameters, corresponding to Thompson Sampling
     parser.add_argument('--num_formats_format_spread', type=int, default=320, help='Number of formats to sample.')
@@ -345,7 +360,7 @@ if __name__ == "__main__":
     args.allow_text_action_type = not args.disable_text_action_type
     disable_text_action_type = 'textdisabled'
 
-    if args.model_name in ['gpt-5', 'gpt-3.5-turbo']:
+    if args.model_name in ['gpt-4', 'gpt-3.5-turbo'] or args.model_access_method == 'vllm-api' or args.model_access_method.startswith('openai'):
         args.use_gpt3 = True
         args.gpt3_engine = args.model_name
     else:
@@ -437,7 +452,8 @@ if __name__ == "__main__":
     assert output_options_size < 10 if args.evaluation_metric == 'probability_ranking' else True
 
     # 2. load model
-    model, tokenizer, model_will_repeat_input = _load_model(args)
+    # model, tokenizer, model_will_repeat_input = _load_model(args)
+    model, tokenizer, model_will_repeat_input = _load_model_vllm(args)
     print('Model loaded.')
 
     args_compute_node_score['model'] = model

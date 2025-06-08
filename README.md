@@ -56,15 +56,35 @@ SuperNatural Instructions has some very complex formats that require using some 
 
 Modify `_load_model()` accordingly. Current load model function is extremely hacky :)
 
+### Evaluating on other models: 2025 update
+
+Now we use VLLM!
+$ git clone https://github.com/allenai/natural-instructions.git
+python main.py \
+    --task_filename task158_ \
+    --dataset_name natural-instructions \
+    --num_formats_to_analyze 499 \
+    --batch_size_llm 2 \
+    --num_samples 1000 \
+    --model_name "Qwen/Qwen3-0.6B" \
+    --model_access_method "vllm-api" \
+    --n_shot 5 \
+    --evaluation_metric exact_prefix_matching \
+    --evaluation_type format_spread \
+    --num_formats_format_spread 320 \
+    --batch_size_format_spread 20 \
+    --budget_format_spread 40000
+
+
 ## Paper Citation
 
 If you found the paper or datasets helpful, consider citing it:
 
 ```
-@article{sclar2023quantifying,
+@inproceedings{sclarquantifying,
   title={Quantifying Language Models' Sensitivity to Spurious Features in Prompt Design or: How I learned to start worrying about prompt formatting},
   author={Sclar, Melanie and Choi, Yejin and Tsvetkov, Yulia and Suhr, Alane},
-  journal={arXiv preprint arXiv:2310.11324},
-  year={2023}
+  booktitle={The Twelfth International Conference on Learning Representations},
+  year={2024}
 }
 ```

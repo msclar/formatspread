@@ -47,7 +47,7 @@ def call_openai_api_with_retry(args, prompt, max_tokens=10):
 def query_model_parallelized(model, tokenizer, prompt_list, max_tokens, top_p, temperature):
     inputs = tokenizer(prompt_list, padding=True, return_tensors='pt', return_token_type_ids=False).to('cuda')
 
-    with torch.no_grad():
+    with torch.no_grad():       
         outputs = model.generate(
             **inputs, top_p=top_p, temperature=temperature, max_new_tokens=max_tokens,
             return_dict_in_generate=True, output_hidden_states=True, output_attentions=False, output_scores=True
@@ -184,8 +184,9 @@ def evaluate_prompt_format(
         return exact_prefix_matching_scoring(logs)
 
 
-def generate_text_with_metadata(args, input_prompt_string_list, model, tokenizer, model_will_repeat_input, dataset,
-                                selected_dataset_ids, output_classes):
+def generate_text_with_metadata(
+        args, input_prompt_string_list, model, tokenizer, model_will_repeat_input, dataset,
+        selected_dataset_ids, output_classes):
     logs = []
     all_tokens_used = 0
     for batch_idx in range(math.ceil(len(input_prompt_string_list) / args.batch_size_llm)):
@@ -195,7 +196,8 @@ def generate_text_with_metadata(args, input_prompt_string_list, model, tokenizer
         if args.use_gpt3:
             generation_list = []
             for prompt in full_prompt_string_list:
-                generation, tokens_used = call_openai_api_with_retry(args, prompt)
+                generation, tokens_used = model.call_model(prompt, max_tokens=10, top_p=1.0, temperature=1.0)
+                # generation, tokens_used = call_openai_api_with_retry(args, prompt)
                 generation_list.append(generation)
                 all_tokens_used += tokens_used
 
