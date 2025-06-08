@@ -28,12 +28,12 @@ fi
 echo "Running model: $MODEL_NAME"
 
 # Start the vllm server
-vllm serve $MODEL_NAME --gpu-memory-utilization 0.9 --tensor-parallel-size 8 --download-dir /data/home/melaniesclar/lotsofdata/vllm_cache &
+vllm serve $MODEL_NAME --gpu-memory-utilization 0.9 --tensor-parallel-size 8 --download-dir /data/home/melaniesclar/lotsofdata/vllm_cache --disable-log-requests &
 
 # Wait until the vllm server is available
 while true; do
     STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8000)
-    echo $STATUS_CODE
+   echo $STATUS_CODE
     if [ "$STATUS_CODE" -eq 404 ]; then
         echo "vllm server is available."
         break
@@ -42,6 +42,7 @@ while true; do
         sleep 5
     fi
 done
+
 
 # Define task sets for each command variation
 case $COMMAND_VARIATION in
